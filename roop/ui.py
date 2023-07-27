@@ -33,6 +33,9 @@ preview_slider = None
 source_label = None
 target_label = None
 status_label = None
+targets_list = None
+targets_list_label = None
+target_list_queue_switch = None
 
 
 # todo: remove by native support -> https://github.com/TomSchimansky/CustomTkinter/issues/934
@@ -50,9 +53,51 @@ def init(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.CTk:
 
     return ROOT
 
+def select_target_path(target_path: Optional[str] = None) -> None:
+    global RECENT_DIRECTORY_TARGET
+
+    if PREVIEW:
+        PREVIEW.withdraw()
+    clear_face_reference()
+    if target_path is None:
+        roop.globals.target_paths = ctk.filedialog.askopenfilenames(title='select an target image or video', initialdir=RECENT_DIRECTORY_TARGET)
+        if len(roop.globals.target_paths) > 0:
+            target_path = roop.globals.target_paths[0]
+    if is_image(target_path):
+        roop.globals.target_path = target_path
+        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
+        image = render_image_preview(roop.globals.target_path, (200, 200))
+        target_label.configure(image=image)
+    elif is_video(target_path):
+        roop.globals.target_path = target_path
+        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
+        video_frame = render_video_preview(target_path, (200, 200))
+        target_label.configure(image=video_frame)
+    else:
+        roop.globals.target_path = None
+        roop.globals.target_paths = []
+        target_label.configure(image=None)
+
+    if len(roop.globals.target_paths) > 1:
+        targets_list_label.place(relx=0.1, rely=0.52, relwidth=1,relheight=0.03)
+        options_list = roop.globals.target_paths
+        targets_list.configure(values=options_list)
+        if targets_list.get() not in options_list:
+            targets_list.set(options_list[0])
+        targets_list.place(relx=0.1, rely=0.55, relwidth=0.85, relheight=0.03)     
+    else:
+        targets_list_label.place_forget()
+        targets_list.configure(values=[])
+        targets_list.set('')
+        targets_list.place_forget()
+
+def select_target_callback(choice):
+    print("Gui selected new target:", choice)
+    targets_list.set(choice)
+    select_target_path(choice)
 
 def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.CTk:
-    global source_label, target_label, status_label
+    global source_label, target_label, status_label, targets_list, targets_list_label, target_list_queue_switch
 
     ctk.deactivate_automatic_dpi_awareness()
     ctk.set_appearance_mode('system')
@@ -99,6 +144,11 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     many_faces_value = ctk.BooleanVar(value=roop.globals.many_faces)
     many_faces_switch = ctk.CTkSwitch(root, text='Many faces', variable=many_faces_value, cursor='hand2', command=lambda: setattr(roop.globals, 'many_faces', many_faces_value.get()))
     many_faces_switch.place(relx=0.6, rely=0.65)
+
+    targets_list_label = ctk.CTkLabel(root,text="Render targets:",anchor=ctk.W)
+    targets_list_label.place_forget()
+    targets_list = ctk.CTkOptionMenu(root,command=select_target_callback)
+    targets_list.place_forget()
 
     start_button = ctk.CTkButton(root, text='Start', cursor='hand2', command=lambda: select_output_path(start))
     start_button.place(relx=0.15, rely=0.75, relwidth=0.2, relheight=0.05)
@@ -159,30 +209,6 @@ def select_source_path(source_path: Optional[str] = None) -> None:
     else:
         roop.globals.source_path = None
         source_label.configure(image=None)
-
-
-def select_target_path(target_path: Optional[str] = None) -> None:
-    global RECENT_DIRECTORY_TARGET
-
-    if PREVIEW:
-        PREVIEW.withdraw()
-    clear_face_reference()
-    if target_path is None:
-        target_path = ctk.filedialog.askopenfilename(title='select an target image or video', initialdir=RECENT_DIRECTORY_TARGET)
-    if is_image(target_path):
-        roop.globals.target_path = target_path
-        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
-        image = render_image_preview(roop.globals.target_path, (200, 200))
-        target_label.configure(image=image)
-    elif is_video(target_path):
-        roop.globals.target_path = target_path
-        RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
-        video_frame = render_video_preview(target_path, (200, 200))
-        target_label.configure(image=video_frame)
-    else:
-        roop.globals.target_path = None
-        target_label.configure(image=None)
-
 
 def select_output_path(start: Callable[[], None]) -> None:
     global RECENT_DIRECTORY_OUTPUT
