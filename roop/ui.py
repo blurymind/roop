@@ -2,6 +2,7 @@ import os
 import sys
 import webbrowser
 import customtkinter as ctk
+from enum import Enum
 from pathlib import Path
 from tkinterdnd2 import TkinterDnD, DND_ALL
 from typing import Any, Callable, Tuple, Optional
@@ -37,7 +38,26 @@ status_label = None
 targets_list = None
 targets_list_label = None
 target_list_queue_switch = None
+start_button = None
+preview_button = None
 
+class State(Enum):
+    UNKNOWN = 1
+    FAILED_START = 2
+    PROGRESSING_TEMP = 3
+    EXTRACTING_FRAMES = 4
+    PROCESSING_FRAMES = 5
+    SUCCEED_RENDER = 6
+    FAILED_RENDER = 7
+    CREATING_VIDEO = 8
+    CLEAN_TEMP = 9
+
+    @property
+    def is_locked(self):
+        if self in [self.UNKNOWN, self.SUCCEED_RENDER, self.FAILED_RENDER]:
+            return False
+        return True
+current_state = State.UNKNOWN
 
 # todo: remove by native support -> https://github.com/TomSchimansky/CustomTkinter/issues/934
 class CTk(ctk.CTk, TkinterDnD.DnDWrapper):
@@ -98,7 +118,7 @@ def select_target_callback(choice):
     select_target_path(choice)
 
 def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.CTk:
-    global source_label, target_label, status_label, targets_list, targets_list_label, target_list_queue_switch
+    global source_label, target_label, status_label, targets_list, targets_list_label, target_list_queue_switch, start_button, preview_button
 
     ctk.deactivate_automatic_dpi_awareness()
     ctk.set_appearance_mode('system')
@@ -190,8 +210,19 @@ def create_preview(parent: ctk.CTkToplevel) -> ctk.CTkToplevel:
     return preview
 
 
-def update_status(text: str) -> None:
+def update_status(text: str, state: State) -> None:
     status_label.configure(text=text)
+    if state != None:
+        current_state = state
+        preview_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        preview_slider.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        source_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        target_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        status_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        targets_list.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        targets_list_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        start_button.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        preview_button.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
     ROOT.update()
 
 
