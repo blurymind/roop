@@ -16,7 +16,7 @@ from roop.capturer import get_video_frame, get_video_frame_total
 from roop.face_reference import get_face_reference, set_face_reference, clear_face_reference
 from roop.predictor import predict_frame, clear_predictor
 from roop.processors.frame.core import get_frame_processors_modules
-from roop.utilities import is_image, is_video, resolve_relative_path
+from roop.utilities import is_image, is_video, resolve_relative_path, suggest_output_path
 
 ROOT = None
 ROOT_HEIGHT = 700
@@ -40,6 +40,8 @@ targets_list_label = None
 target_list_queue_switch = None
 start_button = None
 preview_button = None
+
+start_run = None
 
 class State(Enum):
     UNKNOWN = 1
@@ -113,12 +115,14 @@ def select_target_path(target_path: Optional[str] = None) -> None:
         targets_list.place_forget()
 
 def select_target_callback(choice):
-    print("Gui selected new target:", choice)
+    output_path = suggest_output_path(choice)
+    print("Gui selected new target:", choice, "index ", roop.globals.target_paths.index(targets_list.get()), 'output ', output_path)
     targets_list.set(choice)
     select_target_path(choice)
 
 def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.CTk:
-    global source_label, target_label, status_label, targets_list, targets_list_label, target_list_queue_switch, start_button, preview_button
+    global source_label, target_label, status_label, targets_list, targets_list_label, target_list_queue_switch, start_button, preview_button, start_run
+    start_run = start
 
     ctk.deactivate_automatic_dpi_awareness()
     ctk.set_appearance_mode('system')
@@ -209,20 +213,22 @@ def create_preview(parent: ctk.CTkToplevel) -> ctk.CTkToplevel:
     preview.bind('<Down>', lambda event: update_face_reference(-1))
     return preview
 
+def start_next_target():
+    current_index = roop.globals.target_paths.index(targets_list.get())
+    if current_index < len(roop.globals.target_paths) - 1:
+        next_target = roop.globals.target_paths[current_index + 1]
+        targets_list.set(next_target)
+        select_target_path(next_target)
+        roop.globals.output_path = suggest_output_path(next_target)
+        print('next path starting: ', roop.globals.output_path)
+        start_run()
 
 def update_status(text: str, state: State) -> None:
     status_label.configure(text=text)
     if state != None:
         current_state = state
-        preview_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        preview_slider.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        source_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        target_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        status_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        targets_list.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        targets_list_label.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        start_button.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
-        preview_button.configure(state = ctk.DISABLED if current_state.is_locked else ctk.NORMAL)
+        if current_state == State.SUCCEED_RENDER and len(roop.globals.target_paths) > 1:
+            start_next_target()
     ROOT.update()
 
 
