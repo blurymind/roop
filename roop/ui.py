@@ -14,7 +14,7 @@ from roop.capturer import get_video_frame, get_video_frame_total
 from roop.face_reference import get_face_reference, set_face_reference, clear_face_reference
 from roop.predictor import predict_frame, clear_predictor
 from roop.processors.frame.core import get_frame_processors_modules
-from roop.utilities import is_image, is_video, resolve_relative_path, normalize_output_path
+from roop.utilities import is_image, is_video, resolve_relative_path, suggest_output_file_name
 
 ROOT = None
 ROOT_HEIGHT = 700
@@ -188,9 +188,9 @@ def select_output_path(start: Callable[[], None]) -> None:
     global RECENT_DIRECTORY_OUTPUT
 
     if is_image(roop.globals.target_path):
-        output_path = ctk.filedialog.asksaveasfilename(title='save image output file', defaultextension='.png', initialfile=normalize_output_path(roop.globals.target_path), initialdir=RECENT_DIRECTORY_OUTPUT)
+        output_path = ctk.filedialog.asksaveasfilename(title='save image output file', defaultextension='.png', initialfile=suggest_output_file_name(roop.globals.target_path), initialdir=RECENT_DIRECTORY_OUTPUT)
     elif is_video(roop.globals.target_path):
-        output_path = ctk.filedialog.asksaveasfilename(title='save video output file', defaultextension='.mp4', initialfile=normalize_output_path(roop.globals.target_path), initialdir=RECENT_DIRECTORY_OUTPUT)
+        output_path = ctk.filedialog.asksaveasfilename(title='save video output file', defaultextension='.mp4', initialfile=suggest_output_file_name(roop.globals.target_path), initialdir=RECENT_DIRECTORY_OUTPUT)
     else:
         output_path = None
     if output_path:
