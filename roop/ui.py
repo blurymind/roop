@@ -90,12 +90,12 @@ def select_target_path(target_path: Optional[str] = None) -> None:
         roop.globals.target_path = target_path
         RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
         image = render_image_preview(roop.globals.target_path, (200, 200))
-        target_label.configure(image=image)
+        # target_label.configure(image=image)
     elif is_video(target_path):
         roop.globals.target_path = target_path
         RECENT_DIRECTORY_TARGET = os.path.dirname(roop.globals.target_path)
         video_frame = render_video_preview(target_path, (200, 200))
-        target_label.configure(image=video_frame)
+        # target_label.configure(image=video_frame)
     else:
         roop.globals.target_path = None
         roop.globals.target_paths = []
@@ -115,7 +115,7 @@ def select_target_path(target_path: Optional[str] = None) -> None:
         targets_list.place_forget()
 
 def select_target_callback(choice):
-    output_path = suggest_output_path(choice)
+    output_path = suggest_output_path(choice, roop.globals.source_path)
     print("Gui selected new target:", choice, "index ", roop.globals.target_paths.index(targets_list.get()), 'output ', output_path)
     targets_list.set(choice)
     select_target_path(choice)
@@ -154,6 +154,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     target_button = ctk.CTkButton(root, text='Select a target', cursor='hand2', command=lambda: select_target_path())
     target_button.place(relx=0.6, rely=0.4, relwidth=0.3, relheight=0.1)
 
+    roop.globals.keep_fps = True
     keep_fps_value = ctk.BooleanVar(value=roop.globals.keep_fps)
     keep_fps_checkbox = ctk.CTkSwitch(root, text='Keep target fps', variable=keep_fps_value, cursor='hand2', command=lambda: setattr(roop.globals, 'keep_fps', not roop.globals.keep_fps))
     keep_fps_checkbox.place(relx=0.1, rely=0.6)
@@ -166,6 +167,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     skip_audio_switch = ctk.CTkSwitch(root, text='Skip target audio', variable=skip_audio_value, cursor='hand2', command=lambda: setattr(roop.globals, 'skip_audio', skip_audio_value.get()))
     skip_audio_switch.place(relx=0.6, rely=0.6)
 
+    roop.globals.many_faces = True
     many_faces_value = ctk.BooleanVar(value=roop.globals.many_faces)
     many_faces_switch = ctk.CTkSwitch(root, text='Many faces', variable=many_faces_value, cursor='hand2', command=lambda: setattr(roop.globals, 'many_faces', many_faces_value.get()))
     many_faces_switch.place(relx=0.6, rely=0.65)
@@ -219,7 +221,7 @@ def start_next_target():
         next_target = roop.globals.target_paths[current_index + 1]
         targets_list.set(next_target)
         select_target_path(next_target)
-        roop.globals.output_path = suggest_output_path(next_target)
+        roop.globals.output_path = suggest_output_path(next_target, roop.globals.source_path)
         print('next path starting: ', roop.globals.output_path)
         start_run()
 
@@ -243,7 +245,7 @@ def select_source_path(source_path: Optional[str] = None) -> None:
         roop.globals.source_path = source_path
         RECENT_DIRECTORY_SOURCE = os.path.dirname(roop.globals.source_path)
         image = render_image_preview(roop.globals.source_path, (200, 200))
-        source_label.configure(image=image)
+        # source_label.configure(image=image)
     else:
         roop.globals.source_path = None
         source_label.configure(image=None)
@@ -251,11 +253,10 @@ def select_source_path(source_path: Optional[str] = None) -> None:
 def select_output_path(start: Callable[[], None]) -> None:
     global RECENT_DIRECTORY_OUTPUT
 
+    suggested_output_file_name = suggest_output_path(roop.globals.target_path, roop.globals.source_path)
     if is_image(roop.globals.target_path):
-        suggested_output_file_name = f'{Path(roop.globals.target_path).stem}-result.png'
         output_path = ctk.filedialog.asksaveasfilename(title='save image output file', defaultextension='.png', initialfile=suggested_output_file_name, initialdir=RECENT_DIRECTORY_OUTPUT)
     elif is_video(roop.globals.target_path):
-        suggested_output_file_name = f'{Path(roop.globals.target_path).stem}-result.mp4'
         output_path = ctk.filedialog.asksaveasfilename(title='save video output file', defaultextension='.mp4', initialfile=suggested_output_file_name, initialdir=RECENT_DIRECTORY_OUTPUT)
     else:
         output_path = None
